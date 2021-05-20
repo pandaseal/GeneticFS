@@ -5,6 +5,7 @@ from sklearn.model_selection import cross_val_score, KFold
 from sklearn.metrics import f1_score, r2_score
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
+import logging
 
 
 class GeneticFS():
@@ -13,13 +14,20 @@ class GeneticFS():
     This is designed to help with feature selection in highly dimensional datasets
     """
 
-    def __init__(self, mutation_rate = 0.001, iterations = 100, pool_size = 50):
+    def __init__(self, mutation_rate = 0.001, iterations = 100, pool_size = 50, log_to ='geneticfs.log'):
         self.mutation_rate = mutation_rate
         self.iterations = iterations
         self.pool_size = pool_size
         self.pool = np.array([])
         self.iterations_results = {}
         self.kf = KFold(n_splits=5)
+
+        logging.basicConfig(
+            filename=log_to, 
+            format='%(asctime)s %(message)s', 
+            datefmt='%Y-%m-%d %H:%M:%S', 
+            level=logging.INFO
+        )
 
 
     def results(self):
@@ -124,5 +132,6 @@ class GeneticFS():
             if verbose:
                 if iteration % 10 == 0:
                     e_t = time.time()
-                    print('Iteration {} Complete [Time Taken For Last Iteration: {} Seconds]'.format(iteration,round(e_t-s_t,2)))
-            
+                    msg = 'Iteration {} Complete [Time Taken For Last Iteration: {} Seconds]'.format(iteration,round(e_t-s_t,2))
+                    logging.info(msg)
+                    print(msg)
