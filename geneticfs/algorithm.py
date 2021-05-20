@@ -51,7 +51,7 @@ class GeneticFS():
         plt.show()
 
 
-    def fit(self, model, _type, X, y, cv=True, pca=False, verbose=True):
+    def fit(self, model, _type, X, y, cv=True, pca=False, verbose=True, cv_reg_scoring='r2', cv_class_scoring='f1_weighted'):
         """
         model = sci-kit learn regression/classification model
         _type = type of model entered STR (eg.'regression' or 'classification')
@@ -59,6 +59,9 @@ class GeneticFS():
         y = Y output data corresponding to X
         cv = True/False for cross-validation
         pca = True/False for principal component analysis
+        cv_reg_scoring = the scoring function to use for regresion (only if cv = True, else default)
+        cv_class_scoring = the scoring function to use for classification (only if cv = True, else default)
+        Possible scores: https://scikit-learn.org/stable/modules/model_evaluation.html
         """
 
         self.__init__(self.mutation_rate, self.iterations, self.pool_size)
@@ -92,22 +95,30 @@ class GeneticFS():
                 if _type == 'regression':
                     if cv==True:
                         # get the cv score for this individual
-                        score = np.mean(cross_val_score(model, adj_X, y, scoring='r2', cv=self.kf))
+                        score = np.mean(cross_val_score(model, adj_X, y, scoring=cv_reg_scoring, cv=self.kf))
                     else:
                         score = r2_score(y, model.fit(adj_X,y).predict(adj_X))
 
                 elif _type == 'classification':
                     if cv==True:
-                        score = np.mean(cross_val_score(model, adj_X, y, scoring='f1_weighted', cv=self.kf))
+                        score = np.mean(cross_val_score(model, adj_X, y, scoring=cv_class_scoring, cv=self.kf))
                     else:
                         score = f1_score(y, model.fit(adj_X,y).predict(adj_X))
 
                 scores.append(score)
             fitness = [x/sum(scores) for x in scores] # fitness of each individual
 
-            # sort the population based on fitness where highest fitness (highest value) comes first
-            fitness, self.pool, scores = (list(t) for t in zip(*sorted(zip(fitness, [list(l) for l in list(self.pool)], scores),reverse=True)))
+            # deciding on sorting order
+            reverse_scores = ['r2', 'explained_variance'] # higher is better
+            sorting_reverse = True
+            if _type == 'regression':
+                if cv==True:
+                    if not (cv_reg_scoring in reverse_scores): # if you want to use an error-based metric (lower is better)
+                        sorting_reverse = False
+            # TODO add same functionality for classification
             
+            # sort the population based on fitness where highest fitness comes first
+            fitness, self.pool, scores = (list(t) for t in zip(*sorted(zip(fitness, [list(l) for l in list(self.pool)], scores),reverse=sorting_reverse)))
             self.iterations_results['{}'.format(iteration)] = dict()
             self.iterations_results['{}'.format(iteration)]['fitness'] = fitness
             self.iterations_results['{}'.format(iteration)]['pool'] = self.pool
